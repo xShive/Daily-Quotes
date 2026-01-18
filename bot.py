@@ -4,6 +4,7 @@ import discord
 import os
 import random
 import re
+from config import *
 
 # Load .env: token
 dotenv.load_dotenv()
@@ -25,6 +26,29 @@ async def fetch_message_history_quotes(channel: discord.TextChannel) -> list[lis
         
     return all_matches
 
+async def get_channels_from_config(config: dict):
+    source_id = config.get("source_channel")
+    target_id = config.get("target_channel")
+
+    if source_id is None or target_id is None:
+        return None
+
+    try:
+        source_channel = await client.fetch_channel(source_id)
+        target_channel = await client.fetch_channel(target_id)
+        
+    except discord.NotFound:
+        return None
+    except discord.Forbidden:
+        return None
+    except discord.HTTPException:
+        return None
+
+    if not isinstance(target_channel, discord.abc.Messageable):
+        return None
+
+    return source_channel, target_channel
+
 
 @client.event
 async def on_ready():
@@ -40,13 +64,19 @@ async def on_message(message):
         
         if len(history) > 0:
             user_msg = random.choice(history)
-            target_channel = await client.fetch_channel(1461909209078694216)
-            if isinstance(target_channel, discord.abc.Messageable):
+
+            user_config = read_config()
+            channels = await get_channels_from_config(user_config)
+
+            if channels:
+                source_channel, target_channel = channels
                 for quote_info in user_msg:
                     await target_channel.send(f"\"{quote_info[0]}\"\n-{quote_info[1]}")
 
             else:
-                await message.channel.send("No history found!")
+                await message.channel.send("No source or target channel set / bot cannot access them!") 
+        else:
+            await message.channel.send("No history found!")
             
     if (message.author.display_name == "Shive" or message.author.display_name == "Hintrill") and "%id" in message.content:
         await message.channel.send(message.channel.id)
