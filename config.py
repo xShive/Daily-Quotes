@@ -14,5 +14,3 @@ def update_config(target_key: str, new_value):
     with open(PATH, 'w', encoding="utf-8") as f:
         json.dump(data, f)
     return
-
-update_config("source_channel", 123)
