@@ -65,21 +65,24 @@ async def fetch_message_history_quotes(channel: discord.TextChannel) -> list[lis
     return all_matches
 
 
-async def send_random_quote(source_channel: discord.TextChannel, target_channel: discord.abc.Messageable):
+async def get_random_quote(source_channel: discord.TextChannel, target_channel: discord.abc.Messageable) -> str:
     """Pick a random message containing quotes and send all quotes from it to the target channel
 
     Args:
         source_channel (discord.TextChannel): this not only guarantees a .send() method, but also others like .history()
         target_channel (discord.abc.Messageable): anything that has a .send() method (TextChannel, Thread, ...)
+    
+    Returns:
+        str: the formatted text
     """
     history = await fetch_message_history_quotes(source_channel)
-    if not history:
-        return
-    
     user_msg = random.choice(history)
+    formatted_quote = ""
 
     for quote_info in user_msg:
-        await target_channel.send(f"\"{quote_info[0]}\"\n-{quote_info[1]}")
+        formatted_quote += f"\"{quote_info[0]}\"\n-{quote_info[1]}"
+
+    return formatted_quote
 
 
 # ==========
@@ -97,6 +100,7 @@ async def get_channels_from_config(config: dict) -> tuple[discord.TextChannel, d
     try:
         source_channel = await client.fetch_channel(source_id)
         target_channel = await client.fetch_channel(target_id)
+        
     except discord.InvalidData or discord.Forbidden or discord.NotFound:
         return None
     
@@ -159,9 +163,12 @@ async def random_quote(interaction: discord.Interaction):
         return
     
     source_channel, target_channel = channels
-    await send_random_quote(source_channel, target_channel)
 
-    await interaction.response.send_message("Quote sent!", ephemeral=True)
+    # Fetching random quotes takes time (>3sec) so we defer. This sets flag True (by thinking)
+    await interaction.response.defer()
+
+    quote = await get_random_quote(source_channel, target_channel)
+    await interaction.edit_original_response(content=quote)
 
 
 # ==========
@@ -172,3 +179,5 @@ if token is None:
     raise RuntimeError("DISCORD_TOKEN environment variable not set")
 
 client.run(token)
+
+# / source_channel

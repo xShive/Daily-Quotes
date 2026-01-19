@@ -7,8 +7,8 @@ A simple Discord bot that fetches quotes from a channel and posts them randomly 
 This bot listens for commands in a Discord server and sends random quotes that have been previously recorded in a channel.  
 Commands include:
 
-- `%h` → fetch a random quote
-- `%id` → get the channel ID
+- `/quote` → fetch a random quote from a source channel into the target channel
+- `/id` → get the channel ID
 
 ### Dependencies
 
