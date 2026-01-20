@@ -5,6 +5,7 @@
 import os
 import random
 import re
+from typing import Any, Callable
 
 # Third-party libraries
 import dotenv
@@ -12,7 +13,7 @@ import discord
 from discord import app_commands
 
 # local modules
-from config import read_config
+from config import read_config, update_config
 
 
 # ==========
@@ -42,6 +43,18 @@ tree = app_commands.CommandTree(client)
 # Logic helpers
 # ==========
 
+def validate_user(func: Callable) -> Callable:
+    async def wrapper(interaction: discord.Interaction):
+        authorized_users = get_authorized_users(read_config())
+        if interaction.user.display_name not in authorized_users:
+            await interaction.response.send_message("You are not authorized to use this command.")
+            return
+        
+        await func(interaction)
+
+    return wrapper
+        
+
 async def fetch_message_history_quotes(channel: discord.TextChannel) -> list[list[tuple[str, str]]]:
     """Fetch all messages in a channel and extract quotes using regular expressions.
     Each message may contain multiple quotes with format:
@@ -65,31 +78,61 @@ async def fetch_message_history_quotes(channel: discord.TextChannel) -> list[lis
     return all_matches
 
 
-async def get_random_quote(source_channel: discord.TextChannel, target_channel: discord.abc.Messageable) -> str:
+async def fetch_random_quote(source_channel: discord.TextChannel) -> list[tuple[str, str]] | None:
     """Pick a random message containing quotes and send all quotes from it to the target channel
 
     Args:
         source_channel (discord.TextChannel): this not only guarantees a .send() method, but also others like .history()
-        target_channel (discord.abc.Messageable): anything that has a .send() method (TextChannel, Thread, ...)
     
     Returns:
         str: the formatted text
     """
     history = await fetch_message_history_quotes(source_channel)
+    if not history:
+        return None
+    
     user_msg = random.choice(history)
-    formatted_quote = ""
+    return user_msg
 
-    for quote_info in user_msg:
-        formatted_quote += f"\"{quote_info[0]}\"\n-{quote_info[1]}"
 
-    return formatted_quote
+def create_quote_embed(quote_data: list[tuple[str, str]]) -> discord.Embed:
+    embed = discord.Embed(
+        title="📜 Quote",
+        color=discord.Colour.from_rgb(130, 182, 217),
+    )
+
+    lines: list[str] = []
+
+    for quote_text, author in quote_data:
+        lines.append(f"“{quote_text}”\n— *{author}*")
+
+    embed.description = "\n\n".join(lines)
+    embed.set_footer(text="Daily Quotes")
+
+    return embed
+
+def create_info_embed(source_channel: discord.TextChannel, target_channel: discord.abc.Messageable) -> discord.Embed:
+    embed = discord.Embed(
+        title="⚙️ Info",
+        color=discord.Colour.from_rgb(160, 231, 125)
+    )
+    description = f"Source channel: {source_channel.mention}"
+
+    if isinstance(target_channel, (discord.TextChannel | discord.Thread)):
+        description += f"\nTarget channel: {target_channel.mention}"
+    else:
+        description += f"\nTarget channel: ERROR"
+    
+    embed.description = description
+    
+    return embed
 
 
 # ==========
 # Config helpers (config.py, config.json related)
 # ==========
 
-async def get_channels_from_config(config: dict) -> tuple[discord.TextChannel, discord.abc.Messageable] | None:
+async def get_channels_from_config(config: dict[str, Any]) -> tuple[discord.TextChannel, discord.abc.Messageable] | None:
     source_id = config.get("source_channel")
     target_id = config.get("target_channel")
 
@@ -101,7 +144,7 @@ async def get_channels_from_config(config: dict) -> tuple[discord.TextChannel, d
         source_channel = await client.fetch_channel(source_id)
         target_channel = await client.fetch_channel(target_id)
         
-    except discord.InvalidData or discord.Forbidden or discord.NotFound:
+    except (discord.InvalidData, discord.Forbidden, discord.NotFound):
         return None
     
     if not isinstance(target_channel, discord.abc.Messageable):
@@ -125,12 +168,11 @@ def get_authorized_users(config: dict) -> list[str]:
 
 @client.event
 async def on_ready():
-    """Called once the bot has successfully established a connection to Discord
-    """
     print(f"Logged in as {client.user}")
 
-    # Sync slash commands to Discord
-    await tree.sync()
+    MY_GUILD_ID = discord.Object(id=1422675442866847837) 
+    tree.copy_global_to(guild=MY_GUILD_ID)
+    await tree.sync(guild=MY_GUILD_ID)
 
 
 # ==========
@@ -138,6 +180,7 @@ async def on_ready():
 # ==========
 
 @tree.command(name="id", description="Get the ID of the current channel")
+@validate_user
 async def current_channel_id(interaction: discord.Interaction):
     """Returns the current channel ID (debug command)
     """
@@ -145,19 +188,12 @@ async def current_channel_id(interaction: discord.Interaction):
 
 
 @tree.command(name="quote", description="Send a random quote from a source channel to a target channel")
+@validate_user
 async def random_quote(interaction: discord.Interaction):
     """Send a random quote from the configured channel to the target channel
     """
-    user_config = read_config()
-    authorized_users = get_authorized_users(user_config)
-
-    # Permission check
-    if interaction.user.display_name not in authorized_users:
-        await interaction.response.send_message("You are not authorized to use this command", ephemeral=True)
-        return
-    
     # Check if channel ID's exist in user_config
-    channels = await get_channels_from_config(user_config)
+    channels = await get_channels_from_config(read_config())
     if channels is None:
         await interaction.response.send_message("No source and/or target channel set!", ephemeral=True)
         return
@@ -167,8 +203,61 @@ async def random_quote(interaction: discord.Interaction):
     # Fetching random quotes takes time (>3sec) so we defer. This sets flag True (by thinking)
     await interaction.response.defer()
 
-    quote = await get_random_quote(source_channel, target_channel)
-    await interaction.edit_original_response(content=quote)
+    quote = await fetch_random_quote(source_channel)
+    if quote is None:
+        await interaction.edit_original_response(content=f"No quotes found in {source_channel.mention}!")
+        return
+    
+    quote_embed = create_quote_embed(quote)
+    await interaction.edit_original_response(embed=quote_embed)
+
+
+@tree.command(name="source", description="Set the specified channel as the source channel.")
+@validate_user # set_source = validate_user(set_source)
+async def set_source(interaction: discord.Interaction, source_channel: discord.TextChannel):
+    update_config("source_channel", source_channel.id)
+    await interaction.response.send_message("Successfully changed the source channel!")
+
+
+@tree.command(name="target", description="Set the specified channel as the target channel.")
+@validate_user
+async def set_target(interaction: discord.Interaction, target_channel: discord.TextChannel):
+    update_config("target_channel", target_channel.id)
+    await interaction.response.send_message("Successfully changed the target channel!")
+
+
+@tree.command(name="info", description="Display the current source- and target-channel.")
+@validate_user
+async def show_info(interaction: discord.Interaction):
+    user_config = read_config()
+    
+    channels = await get_channels_from_config(user_config)
+    if channels is None:
+        await interaction.response.send_message("No source and/or target channel set!", ephemeral=True)
+        return
+    
+    source_channel, target_channel = channels
+    info_embed = create_info_embed(source_channel, target_channel)
+    await interaction.response.send_message(embed=info_embed)
+
+@tree.command(name="total_quotes", description="Display the total amount of correctly formatted quotes in set source channel")
+@validate_user
+async def get_total_quotes(interaction: discord.Interaction):
+    channels = await get_channels_from_config(read_config())
+    if channels is None:
+        await interaction.response.send_message("No source channel set!", ephemeral=True)
+        return
+
+    source_channel = channels[0]
+
+    await interaction.response.defer()
+
+    history = await fetch_message_history_quotes(source_channel)
+    if not history:
+        await interaction.edit_original_response(content=f"No quotes found in {source_channel.mention}!")
+        return
+    
+    await interaction.edit_original_response(content= (lambda aantal: f"There {"is" if aantal == 1 else "are"} {aantal} quote{"" if aantal == 1 else "s"} in {source_channel.mention}")(sum([len(message) for message in history])))
 
 
 # ==========
@@ -179,5 +268,3 @@ if token is None:
     raise RuntimeError("DISCORD_TOKEN environment variable not set")
 
 client.run(token)
-
-# / source_channel
