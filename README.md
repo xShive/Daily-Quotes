@@ -9,6 +9,10 @@ Commands include:
 
 - `/quote` → fetch a random quote from a source channel into the target channel
 - `/id` → get the channel ID
+- `/source` → set source channel
+- `/target` → set target channel
+- `/info` → view current source- and target-channel
+- `/total_quotes` → view the total amount of formatted quotes in set target channel
 
 ### Dependencies
 
@@ -43,5 +47,6 @@ Shive
 
 ### Note
 
-Bot is still in development.
+Bot is still under development.
+Thank you for the one-liners, cheese eater Ruud
 
