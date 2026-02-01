@@ -15,3 +15,8 @@ def update_config(target_key: str, new_value):
     with open(PATH, 'w', encoding="utf-8") as f:
         json.dump(data, f)
     return
+
+def get_authorized_users(config: dict) -> list[str]:
+    """Get list of display names allowed to use admin commands
+    """
+    return config.get("authorized_users", [])
