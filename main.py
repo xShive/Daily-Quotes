@@ -4,6 +4,7 @@ import dotenv
 import discord
 
 from discord import app_commands
+from config import update_config
 from commands.commands import register_commands
 from commands.errors import register_errors
 
@@ -35,27 +36,21 @@ register_errors(tree)
 
 
 # ========== Startup ==========
-guild_id_str = os.getenv("GUILD_ID")
 token = os.getenv("DISCORD_TOKEN")
-
 if token is None:
     raise RuntimeError("DISCORD_TOKEN environment variable not set")
-
-if guild_id_str is None:
-    raise RuntimeError("GUILD_ID environment variable not set")
-
-try:
-    target_guild_id = int(guild_id_str)
-except ValueError:
-    raise RuntimeError(f"GUILD_ID must be a number, but got: {guild_id_str}")
 
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user}")
+    async for guild in client.fetch_guilds():
+        update_config(guild.id)
 
-    tree.copy_global_to(guild=discord.Object(id=target_guild_id))
-    await tree.sync(guild=discord.Object(id=target_guild_id))
+    await tree.sync()
+
+
+@client.event
+async def on_guild_join(guild: discord.Guild):
+    update_config(guild.id)
     
-    print(f"Commands synced to guild {target_guild_id}")
-
 client.run(token)

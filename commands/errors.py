@@ -1,6 +1,9 @@
+# ========== Imports ==========
 import discord
 from discord import app_commands
 
+
+# ========== Command errors function ==========
 def register_errors(tree):
     @tree.error
     async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
