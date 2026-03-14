@@ -3,7 +3,7 @@ import discord
 from discord import app_commands
 
 
-# ========== Command errors function ==========
+# ========== Error Handler Registration ==========
 def register_errors(tree):
     @tree.error
     async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -13,4 +13,3 @@ def register_errors(tree):
         
         print(f"Unhandled error: {error}")
         await interaction.response.send_message("Something went wrong. Please contact Shive.", ephemeral=True)
-

@@ -1,10 +1,11 @@
 # ========== Imports ==========
 import discord
 from typing import Any
-from config import read_config, get_authorized_users
+
+from core.config import read_config, get_authorized_users
 
 
-# ========== Functions ==========
+# ========== Validation Functions ==========
 async def validate_user(interaction: discord.Interaction) -> bool:
     """Check if the user is authorized in this guild.
     This function is used as an @app_commands.check.
@@ -48,4 +49,3 @@ async def get_channels_from_config(interaction: discord.Interaction, config: dic
         return None
 
     return source_channel, target_channel   # Guaranteed hinted types because of the checks
-

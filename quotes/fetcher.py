@@ -4,7 +4,7 @@ import re
 import discord
 
 
-# ========== Functions ==========
+# ========== Quote Fetching Functions ==========
 async def fetch_message_history_quotes(channel: discord.TextChannel | discord.Thread) -> list[list[tuple[str, str]]]:
     """Fetch all messages in a channel and extract quotes using a regex.
 

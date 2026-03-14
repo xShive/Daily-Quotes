@@ -2,7 +2,7 @@
 import discord
 
 
-# ========== Functions ==========
+# ========== Embed Creation Functions ==========
 def create_quote_embed(quote_data: list[tuple[str, str]]) -> discord.Embed:
     """Create an embed containing one or more quotes.
 

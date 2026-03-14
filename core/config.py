@@ -7,7 +7,7 @@ from typing import Any, Optional
 PATH = "data/config.json"
 
 
-# ========== Functions ==========
+# ========== Configuration Functions ==========
 def read_config() -> dict[str, Any]:
     """Load the full configuration from disk.
 

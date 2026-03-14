@@ -4,9 +4,9 @@ import dotenv
 import discord
 
 from discord import app_commands
-from config import update_config
-from commands.commands import register_commands
-from commands.errors import register_errors
+from core.config import update_config
+from commands.quote_commands import register_commands
+from commands.error_handler import register_errors
 
 
 # ========== Environment Setup ==========
@@ -48,9 +48,9 @@ async def on_ready():
 
     await tree.sync()
 
-
 @client.event
 async def on_guild_join(guild: discord.Guild):
     update_config(guild.id)
-    
-client.run(token)
+
+if __name__ == "__main__":
+    client.run(token)

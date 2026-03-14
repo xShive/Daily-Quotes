@@ -1,13 +1,14 @@
 # ========== Imports ==========
 import discord
 from discord import app_commands
-from config import read_config, update_config
-from helpers import validate_user, get_channels_from_config
-from quotes import fetch_random_quote, fetch_message_history_quotes
-from embeds import create_quote_embed, create_info_embed
+
+from core.config import read_config, update_config
+from core.validation import validate_user, get_channels_from_config
+from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes
+from quotes.embeds import create_quote_embed, create_info_embed
 
 
-# ========== Slash command functions ==========
+# ========== Slash Command Registration ==========
 def register_commands(tree):
     @tree.command(name="quote", description="Send a random quote from a source channel to a target channel")
     @app_commands.check(validate_user)
@@ -31,7 +32,7 @@ def register_commands(tree):
         quote_embed = create_quote_embed(quote)
         await target_channel.send(embed=quote_embed)
         if isinstance(target_channel, discord.abc.GuildChannel):
-            await interaction.edit_original_response(content=f"Successfully sent quote in {target_channel.mention}")
+            await interaction.delete_original_response()
 
 
     @tree.command(name="source", description="Set the specified channel as the source channel.")
