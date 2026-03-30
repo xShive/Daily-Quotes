@@ -2,14 +2,22 @@
 import discord
 from discord import app_commands
 
-from core.config import read_config, update_config
-from core.validation import validate_user, get_channels_from_config
+from core.config_manager import ConfigManager
+from core.cache import QuoteCache
 from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes
 from quotes.embeds import create_quote_embed, create_info_embed
 
 
 # ========== Slash Command Registration ==========
-def register_commands(tree):
+def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
+    """
+    Register all slash commands.
+    
+    Args:
+        tree: Discord command tree
+        config_manager: ConfigManager instance
+        cache: QuoteCache instance
+    """
     @tree.command(name="quote", description="Send a random quote from a source channel to a target channel")
     @app_commands.check(validate_user)
     async def random_quote(interaction: discord.Interaction):

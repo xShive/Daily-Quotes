@@ -4,35 +4,30 @@ import dotenv
 import discord
 
 from discord import app_commands
-from core.config import update_config
 from commands.quote_commands import register_commands
 from commands.error_handler import register_errors
+from core.config_manager import ConfigManager
+from core.cache import QuoteCache
 
 
 # ========== Environment Setup ==========
-# Load environment variables from .env file
 dotenv.load_dotenv()
 
 
-# ========== Discord client + command tree setup ==========
-# Intents: describe what data Discord is allowed to send
-intents = discord.Intents.default()
-intents.message_content = True  # reading message history permission
+# ========== Initialize Managers ==========
+config_manager = ConfigManager()
+cache = QuoteCache()
 
-# Client handles connection to Discord
+
+# ========== Setup ==========
+intents = discord.Intents.default()
+intents.message_content = True
 client = discord.Client(intents=intents)
 
 # CommandTree stores all slash commands
 tree = app_commands.CommandTree(client)
 # AppCommand objects, each of which knows command name, desc, parameter info, function to call
 # So it looks like this: "id" + AppCommand(callback=function, metadata=...)
-
-
-# ========== Register commands + errors ==========
-# Must be called to register in the tree
-# Otherwise, commands.py might run before main has initialized tree -> error
-register_commands(tree)
-register_errors(tree)
 
 
 # ========== Startup ==========
@@ -43,14 +38,30 @@ if token is None:
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user}")
-    async for guild in client.fetch_guilds():
-        update_config(guild.id)
 
-    await tree.sync()
+    register_commands(tree)
+    register_errors(tree)
+    
+    # sync with test server
+    MY_GUILD = discord.Object(id=1422675442866847837)
+    tree.copy_global_to(guild=MY_GUILD)
+    await tree.sync(guild=MY_GUILD)
+
+    # sync all joined guilds
+    async for guild in client.fetch_guilds():
+        config_manager.add_guild(guild.id)
+    config_manager.save()
+
 
 @client.event
 async def on_guild_join(guild: discord.Guild):
-    update_config(guild.id)
+    config_manager.add_guild(guild.id)
+    config_manager.save()
+
+@client.event
+async def on_guild_remove(guild: discord.Guild):
+    config_manager.remove_guild(guild.id)
+    config_manager.save()
 
 if __name__ == "__main__":
     client.run(token)
