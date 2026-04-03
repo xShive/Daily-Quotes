@@ -39,13 +39,17 @@ if token is None:
 async def on_ready():
     print(f"Logged in as {client.user}")
 
-    register_commands(tree)
+    register_commands(tree, config_manager, cache)
     register_errors(tree)
     
     # sync with test server
-    MY_GUILD = discord.Object(id=1422675442866847837)
-    tree.copy_global_to(guild=MY_GUILD)
-    await tree.sync(guild=MY_GUILD)
+    guild_id = os.getenv("GUILD_ID")
+    if guild_id is None:
+        raise RuntimeError("GUILD_ID environment variable not set")
+    
+    guild = discord.Object(int(guild_id))
+    tree.copy_global_to(guild=guild)
+    await tree.sync(guild=guild)
 
     # sync all joined guilds
     async for guild in client.fetch_guilds():

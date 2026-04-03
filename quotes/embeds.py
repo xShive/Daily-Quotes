@@ -1,13 +1,16 @@
 # ========== Imports ==========
 import discord
+from types.quote_types import Quote
 
 
 # ========== Embed Creation Functions ==========
-def create_quote_embed(quote_data: list[tuple[str, str]]) -> discord.Embed:
-    """Create an embed containing one or more quotes.
+def create_quote_embed(quote_data: Quote) -> discord.Embed:
+    """
+    Create an embed containing one or more quotes.
 
     Args:
-        quote_data (list[tuple[str, str]]): List of (quote, author) tuples.
+        quote_data (Quote): List of (quote, author) tuples.
+        
     Returns:
         discord.Embed
     """

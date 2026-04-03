@@ -1,101 +1,68 @@
 # ========== Imports ==========
-import discord
 from typing import Optional
-from datetime import datetime, timedelta
+from types.quote_types import Quote, T_Quote, QuoteHistory, RECENTS_SIZE
 
 
 # ========== QuoteCache Class ==========
 class QuoteCache:
     """
-    RAM cache for frequently accessed data.
-    Follows the same pattern as AssetCache from League bot.
-    
-    Caches:
-    - Channel objects (avoid repeated Discord API calls)
-    - Quote history from channels (expensive to fetch)
-    
-    All data stored in CLASS-LEVEL attributes (shared across all instances).
+    RAM cache using a dictionary to access quotes without making API calls.
+    Follows the same pattern as AssetCache from League bot :D.
     """
     
-    # Class-level storage (shared across ALL instances automatically!)
-    _channels: dict[int, discord.abc.GuildChannel] = {}
-    _quote_history: dict[int, tuple[list, datetime]] = {}  # (quotes, timestamp)
+    def __init__(self):
+        self._quote_history: QuoteHistory = []
+        self._recent_dailies: QuoteHistory = []
+        self._recents_size: int = RECENTS_SIZE
+
+    def _quote_tuple(self, quote: Quote) -> T_Quote:
+        """Convert Quote into a hashable tuple for set operations."""
+        return tuple(quote)
+
+    def get_quote_history(self, daily=False) -> QuoteHistory:
+        """
+        Get cached quote history.
+
+        - daily=False: return ALL cached history
+        - daily=True: return history excluding recent picks, avoiding repeated quotes
+
+        This uses hashable keys from quote content and avoids O(n^2) loops.
+        """
+        if not daily:
+            return self._quote_history
+
+        recent_tuples = {self._quote_tuple(q) for q in self._recent_dailies}
+        return [q for q in self._quote_history if self._quote_tuple(q) not in recent_tuples]
+
+    def cache_quote_history(self, all_quotes: QuoteHistory):
+        """
+        Save quotes into the cache.
+        All given arguments will be appended to the cache.
+        """
+        for quote in all_quotes:
+            self._quote_history.append(quote)
     
-    # Cache expiration time for quote history (5 minutes)
-    CACHE_EXPIRY = timedelta(minutes=5)
-    
-    def get_channel(self, channel_id: int) -> Optional[discord.abc.GuildChannel]:
+    def cache_recent_history(self, quote: Quote):
         """
-        Get cached channel object.
-        
-        Args:
-            channel_id: Discord channel ID
-            
-        Returns:
-            Cached channel object or None if not cached
+        Save a single quote into recent history (MRU queue).
+
+        The most recent quote is index 0. The list stays unique and capped at _recents_size.
         """
-        return self._channels.get(channel_id)
-    
-    def cache_channel(self, channel_id: int, channel: discord.abc.GuildChannel):
+        self._recent_dailies.insert(0, quote)
+        self._recent_dailies.pop()
+
+    def edit_recents_size(self, size: int):
         """
-        Cache a channel object.
-        
-        Args:
-            channel_id: Discord channel ID
-            channel: Channel object to cache
+        Changes the amount of recent quotes to be stored in the cache.
+
+        If recents are reduced, older entries are dropped to conform to new size.
         """
-        self._channels[channel_id] = channel
-    
-    def get_quote_history(self, channel_id: int) -> Optional[list]:
+        self._recents_size = size
+        while len(self._recent_dailies) > self._recents_size:
+            self._recent_dailies.pop()
+
+    def clear_cache(self):
         """
-        Get cached quote history for a channel.
-        Returns None if not cached or expired.
-        
-        Args:
-            channel_id: Discord channel ID
-            
-        Returns:
-            List of quotes or None if not cached/expired
+        Delete all cache.
         """
-        cached_data = self._quote_history.get(channel_id)
-        if cached_data is None:
-            return None
-        
-        quotes, timestamp = cached_data
-        
-        # Check if cache is expired
-        if datetime.now() - timestamp > self.CACHE_EXPIRY:
-            # Remove expired cache
-            del self._quote_history[channel_id]
-            return None
-        
-        return quotes
-    
-    def cache_quote_history(self, channel_id: int, quotes: list):
-        """
-        Cache quote history for a channel.
-        
-        Args:
-            channel_id: Discord channel ID
-            quotes: List of quotes to cache
-        """
-        self._quote_history[channel_id] = (quotes, datetime.now())
-    
-    def invalidate_quote_history(self, channel_id: Optional[int] = None):
-        """
-        Clear quote history cache.
-        
-        Args:
-            channel_id: If provided, only clear that channel's cache.
-                       If None, clear all quote history.
-        """
-        if channel_id is not None:
-            self._quote_history.pop(channel_id, None)
-        else:
-            self._quote_history.clear()
-    
-    @classmethod
-    def clear_all(cls):
-        """Clear all caches (useful for testing or resetting)."""
-        cls._channels.clear()
-        cls._quote_history.clear()
+        self._quote_history.clear()

@@ -26,6 +26,7 @@ class ConfigManager:
         Whenever you're editing or adding to the config you're forced to use the `save()` function or else your changes won't go through!!
     """
 
+
     def __init__(self):
         self.path = FILE
         self.data = self._load()
