@@ -1,6 +1,6 @@
 # ========== Imports ==========
 from typing import Optional
-from types.quote_types import Quote, T_Quote, QuoteHistory, RECENTS_SIZE
+from my_types.quote_types import Quote, T_Quote, QuoteHistory, RECENTS_SIZE
 
 
 # ========== QuoteCache Class ==========

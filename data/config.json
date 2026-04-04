@@ -1,2 +1,12 @@
 {
+    "guilds": {
+        "1422675442866847837": {
+            "source_channel": null,
+            "target_channel": null,
+            "authorized_users": [
+                514782845181624330
+            ],
+            "admin": 514782845181624330
+        }
+    }
 }

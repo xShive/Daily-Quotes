@@ -1,6 +1,8 @@
 # ========== Imports ==========
 import discord
-from types.quote_types import Quote
+import asyncio
+from my_types.quote_types import Quote
+from core.models import GuildConfig
 
 
 # ========== Embed Creation Functions ==========
@@ -26,26 +28,60 @@ def create_quote_embed(quote_data: Quote) -> discord.Embed:
     return embed
 
 
-def create_info_embed(source_channel: discord.TextChannel | discord.Thread, target_channel: discord.abc.Messageable) -> discord.Embed:
-    """Create an embed describing current source and target channel. 
-
-    Args:
-        source_channel (discord.TextChannel | discord.Thread): Configured source channel.
-        target_channel (discord.abc.Messageable): Configured target channel.
-
-    Returns:
-        discord.Embed
-    """
+async def create_info_embed(
+    source_channel: discord.TextChannel | discord.Thread,
+    target_channel: discord.abc.Messageable,
+    guild_data: GuildConfig,
+    client: discord.Client
+) -> discord.Embed:
+    """Create a detailed embed describing info about the current configuration"""
+    
     embed = discord.Embed(
-        title="⚙️ Info",
+        title="⚙️ Channel Info",
         color=discord.Colour.from_rgb(160, 231, 125)
     )
-    description = f"Source channel: {source_channel.mention}"
-
-    if isinstance(target_channel, (discord.TextChannel, discord.Thread)):
-        description += f"\nTarget channel: {target_channel.mention}"
-    else:
-        description += f"\nTarget channel: ERROR"
     
-    embed.description = description
+    # Source channel field
+    embed.add_field(
+        name="Source Channel",
+        value=(
+            f"Name: {source_channel.name}\n"
+            f"ID: {source_channel.id}\n"
+            f"Type: {'Thread' if isinstance(source_channel, discord.Thread) else 'TextChannel'}\n"
+            f"Mention: {source_channel.mention}"
+        ),
+        inline=False
+    )
+    
+    # Target channel field
+    if isinstance(target_channel, (discord.TextChannel, discord.Thread)):
+        embed.add_field(
+            name="Target Channel",
+            value=(
+                f"Name: {target_channel.name}\n"
+                f"ID: {target_channel.id}\n"
+                f"Type: {'Thread' if isinstance(target_channel, discord.Thread) else 'TextChannel'}\n"
+                f"Mention: {target_channel.mention}"
+            ),
+            inline=False
+        )
+    else:
+        embed.add_field(name="Target Channel", value="ERROR: Invalid channel type", inline=False)
+    
+    # MOD fields
+    # client.fetch_user() is async coroutine. normally, awaiting many of them one by one is slow (serie).
+    # asyncio runs them all at the same time (parallel), returning a list of all results
+    # we have a generator. * unpacks everything. else you do something like next()
+    users = await asyncio.gather(*(client.fetch_user(int(uid)) for uid in guild_data.authorized_users))
+    embed.add_field(
+        name="Moderators",
+        value=(
+            f"Users: {", ".join([user.name for user in users])}\n"
+            f"User_IDs: {", ".join([str(user_id) for user_id in guild_data.authorized_users])}\n"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text="Daily Quotes")
+    
     return embed

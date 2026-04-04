@@ -48,8 +48,7 @@ async def on_ready():
         raise RuntimeError("GUILD_ID environment variable not set")
     
     guild = discord.Object(int(guild_id))
-    tree.copy_global_to(guild=guild)
-    await tree.sync(guild=guild)
+    await tree.sync(guild=guild) 
 
     # sync all joined guilds
     async for guild in client.fetch_guilds():

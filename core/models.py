@@ -44,26 +44,25 @@ class GuildConfig:
         self._data["target_channel"] = channel_id
     
     @property
-    def authorized_users(self) -> list[str]:
-        """Get list of authorized user IDs."""
+    def authorized_users(self) -> list:
+        """Get list of authorized user IDs.
+        Returns an empty list if the config file is either corrupted or empty."""
         return self._data.get("authorized_users", [])
     
-    @authorized_users.setter
-    def authorized_users(self, user_ids: list[str]):
-        """Set list of authorized user IDs."""
-        self._data["authorized_users"] = user_ids
+    @property
+    def admin(self) -> Optional[str]:
+        """Get the superior admin sigma as a str."""
+        return self._data.get("admin")
     
-    def is_user_authorized(self, user_id: str) -> bool:
-        """
-        Check if a user is authorized.
-        
-        Args:
-            user_id: String representation of user ID
-            
-        Returns:
-            True if user is authorized, False otherwise
-        """
-        return user_id in self.authorized_users
+    def add_authorized_user(self, user_id: int):
+        """Add a user to authorized users list, safely."""
+        if user_id not in self.authorized_users:
+            self.authorized_users.append(user_id)
+    
+    def remove_authorized_user(self, user_id):
+        if user_id in self.authorized_users:
+            self.authorized_users.remove(user_id)
+    
     
     def has_channels_configured(self) -> bool:
         """

@@ -1,6 +1,8 @@
 # ========== Imports ==========
 import os
 import json
+import dotenv
+dotenv.load_dotenv()
 from typing import Optional
 
 from core.models import GuildConfig
@@ -24,6 +26,17 @@ class ConfigManager:
     
     **IMPORTANT**
         Whenever you're editing or adding to the config you're forced to use the `save()` function or else your changes won't go through!!
+    
+    {
+    "guilds": {
+        "123456 (guild_id)": {
+        "source_channel": 789,
+        "target_channel": 101,
+        "authorized_users": ["514782845181624330"],
+        "admin" : 2341987043217890
+        }
+      }
+    }
     """
 
 
@@ -39,7 +52,7 @@ class ConfigManager:
         with open(self.path, "r", encoding="utf-8") as f:
             data = json.load(f)
         
-        # Ensure "guilds" key exists
+        # Ensure "guilds" key exists & check if it's a dict
         if "guilds" not in data or not isinstance(data["guilds"], dict):
             data["guilds"] = {}
         
@@ -50,28 +63,26 @@ class ConfigManager:
         with open(self.path, 'w', encoding="utf-8") as f:
             json.dump(self.data, f, indent=4)
     
-    def get_guild(self, guild_id: int) -> Optional[GuildConfig]:
-        """Returns GuildConfig loaded from the config if it exists, creates default if not."""
+    def get_guild(self, guild_id: int) -> GuildConfig:
+        """Returns GuildConfig, creates defaul if missing (using add_guild method)"""
         str_guild_id = str(guild_id)
-        guild_data = self.data["guilds"].get(str_guild_id)
+        if str_guild_id not in self.data["guilds"]:
+            self.add_guild(guild_id)
         
-        if guild_data is None:
-            # Create default config
-            guild_data = {
-                "source_channel": None,
-                "target_channel": None,
-                "authorized_users": ["514782845181624330"]
-            }
-            self.data["guilds"][str_guild_id] = guild_data
-
-        return GuildConfig(str_guild_id, guild_data)
+        return GuildConfig(str_guild_id, self.data["guilds"][str_guild_id])
 
     def add_guild(self, guild_id: int):
-        """Adds a Discord Guild to the config.json. Needs its ID."""
-        self.data["guilds"].setdefault(str(guild_id), {
-            "source_channel": None,
-            "target_channel": None,
-            "authorized_users": ["514782845181624330"]
+        """Adds a Discord Guild to the config.json using default values. Needs its ID."""
+        str_guild_id = str(guild_id)
+        admin_id = os.getenv("ADMIN")
+        if not admin_id:
+            raise RuntimeError("ADMIN environment variable not set")
+
+        self.data["guilds"].setdefault(str_guild_id, {
+            "source_channel" : None,
+            "target_channel" : None,
+            "authorized_users" : [int(admin_id)],
+            "admin" : int(admin_id)
         })
     
     def remove_guild(self, guild_id: int) -> bool:
