@@ -67,12 +67,11 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
     import time
 
     @tree.command(name="quote", description="Send a random quote from a source channel to a target channel")
+    @app_commands.guild_only()
     async def random_quote(interaction: discord.Interaction):
-        start = time.perf_counter()  # 🔥 start timer
+        start = time.perf_counter()
 
-        if interaction.guild_id is None:
-            await interaction.response.send_message("You can not use this command outside a server!", ephemeral=True)
-            return
+        assert interaction.guild_id is not None
         
         channels = await get_configured_channels(config_manager.get_guild(interaction.guild_id), interaction.client)
         if channels is None:
@@ -84,9 +83,6 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await interaction.response.defer()
 
         quote = await fetch_random_quote(source_channel, cache)
-
-        mid = time.perf_counter()
-
         if quote is None:
             await interaction.edit_original_response(content=f"No quotes found in {source_channel.mention}!")
             return
@@ -95,7 +91,6 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await target_channel.send(embed=quote_embed)
 
         end = time.perf_counter()
-
         print(f"Total took: {end - start:.3f}s")
 
         if isinstance(target_channel, discord.abc.GuildChannel):
@@ -104,10 +99,9 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
     @tree.command(name="source", description="Set the specified channel as the source channel.")
     @mod_check
+    @app_commands.guild_only()
     async def set_source(interaction: discord.Interaction, source_channel: discord.TextChannel):
-        if interaction.guild_id is None:
-            await interaction.response.send_message("You can not use this command outside a server!", ephemeral=True)
-            return
+        assert interaction.guild_id is not None
         
         guild_data = config_manager.get_guild(interaction.guild_id)
         guild_data.source_channel = source_channel.id
@@ -117,11 +111,10 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
     @tree.command(name="target", description="Set the specified channel as the target channel.")
     @mod_check
+    @app_commands.guild_only()
     async def set_target(interaction: discord.Interaction, target_channel: discord.TextChannel):
-        if interaction.guild_id is None:
-            await interaction.response.send_message("You can not use this command outside a server!", ephemeral=True)
-            return
-        
+        assert interaction.guild_id is not None
+
         guild_data = config_manager.get_guild(interaction.guild_id)
         guild_data.target_channel = target_channel.id
         config_manager.save()
@@ -130,10 +123,9 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
     @tree.command(name="info", description="Display the currently configurated settings.")
     @mod_check
+    @app_commands.guild_only()
     async def show_info(interaction: discord.Interaction):
-        if interaction.guild_id is None:
-            await interaction.response.send_message("You can not use this command outside a server!", ephemeral=True)
-            return
+        assert interaction.guild_id is not None
         
         guild_data = config_manager.get_guild(interaction.guild_id)
 
@@ -149,11 +141,10 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
     @tree.command(name="total_quotes", description="Display the total amount of correctly formatted quotes in set source channel")
     @mod_check
+    @app_commands.guild_only()
     async def get_total_quotes(interaction: discord.Interaction):
-        if interaction.guild_id is None:
-            await interaction.response.send_message("You can not use this command outside a server!", ephemeral=True)
-            return
-        
+        assert interaction.guild_id is not None
+
         guild_data = config_manager.get_guild(interaction.guild_id)
 
         channels = await get_configured_channels(guild_data, interaction.client)
@@ -178,13 +169,17 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         msg = f"There {verb} {total_count} quote{plural} in {source_channel.mention}"
         
         await interaction.edit_original_response(content=msg)
+
+    @tree.command(name="leaderboard", description="Display a leaderboard with cool info.")
+    async def leaderboard(interaction: discord.Interaction):
+        pass
+
     
     @tree.command(name="add_admin", description="Gives a member privileges to use the bot to its full extent.")
     @admin_check
+    @app_commands.guild_only()
     async def add_admin(interaction: discord.Interaction, user: discord.User):
-        if interaction.guild_id is None:
-            await interaction.response.send_message(content="You can not use this command outside of a server!", ephemeral=True)
-            return
+        assert interaction.guild_id is not None
         
         guild_data = config_manager.get_guild(interaction.guild_id)
         print(user.id)
@@ -194,10 +189,9 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
     @tree.command(name="remove_admin", description="Revokes a member's privileges to use the bot to its full extent.")
     @admin_check
+    @app_commands.guild_only()
     async def remove_admin(interaction: discord.Interaction, user: discord.User):
-        if interaction.guild_id is None:
-            await interaction.response.send_message(content="You can not use this command outside of a server!", ephemeral=True)
-            return
+        assert interaction.guild_id is not None
         
         guild_data = config_manager.get_guild(interaction.guild_id)
         guild_data.remove_authorized_user(user.id)
