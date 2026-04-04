@@ -6,8 +6,33 @@ from discord import app_commands
 from core.config_manager import ConfigManager
 from core.cache import QuoteCache
 from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes, get_configured_channels
-from quotes.embeds import create_quote_embed, create_info_embed
+from quotes.embeds import create_quote_embed, create_info_embed, create_leaderboard_embed
 
+
+class LeaderboardView(discord.ui.View):
+    def __init__(self):
+        super().__init__()      # super is to run discord stuff
+        self.page = 0
+    
+    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.primary)
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # you can only go back if we're not at the start
+        if self.page > 0:
+            self.page -=1
+        
+        await interaction.response.edit_message(
+            embed=create_leaderboard_embed(self.page),
+            view=self
+        )
+
+    @discord.ui.button(label="➡️", style=discord.ButtonStyle.primary)
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page += 1
+
+        await interaction.response.edit_message(
+            embed=create_leaderboard_embed(self.page),
+            view=self
+        )
 
 # ========== Admin Wrapper ==========
 def validation(config_manager: ConfigManager, admin_flag: bool = False):
@@ -170,9 +195,15 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         
         await interaction.edit_original_response(content=msg)
 
+
     @tree.command(name="leaderboard", description="Display a leaderboard with cool info.")
     async def leaderboard(interaction: discord.Interaction):
-        pass
+        lb_view = LeaderboardView()
+
+        await interaction.response.send_message(
+            embed = create_leaderboard_embed(0),
+            view=lb_view
+        )
 
     
     @tree.command(name="add_admin", description="Gives a member privileges to use the bot to its full extent.")

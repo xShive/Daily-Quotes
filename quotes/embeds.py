@@ -21,7 +21,7 @@ def create_quote_embed(quote_data: Quote) -> discord.Embed:
         color=discord.Colour.from_rgb(130, 182, 217),
     )
 
-    lines: list[str] = [f"“{q}”\n— *{a}*" for q, a in quote_data]
+    lines: list[str] = [f"“{q}”\n— *{a}*" for q, a, _ in quote_data]
     embed.description = "\n\n".join(lines)
     embed.set_footer(text="Daily Quotes")
 
@@ -83,5 +83,24 @@ async def create_info_embed(
     )
 
     embed.set_footer(text="Daily Quotes")
+    
+    return embed
+
+
+def create_leaderboard_embed(
+        page: int,
+        type: str
+    ) -> discord.Embed:
+    embed = discord.Embed(
+        title=f"🏆 Leaderboard ({page})",
+        color=discord.Color.gold()
+    )
+
+    for i in range(1, 10):
+        embed.add_field(
+            name=f"User {i + 1}",
+            value=f"Quotes: {100-i}",
+            inline = False
+        )
     
     return embed
