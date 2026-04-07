@@ -7,12 +7,14 @@ from core.config_manager import ConfigManager
 from core.cache import QuoteCache
 from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes, get_configured_channels
 from quotes.embeds import create_quote_embed, create_info_embed, create_leaderboard_embed
+from core.quotestats import QuoteStats
 
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, sender_data):
         super().__init__()      # super is to run discord stuff
         self.page = 0
+        self.sender_data = sender_data
     
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.primary)
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -21,18 +23,18 @@ class LeaderboardView(discord.ui.View):
             self.page -=1
         
         await interaction.response.edit_message(
-            embed=create_leaderboard_embed(self.page),
-            view=self
-        )
+            embed=create_leaderboard_embed(self.sender_data, self.page),
+            view=self)
+
 
     @discord.ui.button(label="➡️", style=discord.ButtonStyle.primary)
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.page += 1
 
         await interaction.response.edit_message(
-            embed=create_leaderboard_embed(self.page),
-            view=self
-        )
+        embed=create_leaderboard_embed(self.sender_data, self.page),
+        view=self
+    )
 
 # ========== Admin Wrapper ==========
 def validation(config_manager: ConfigManager, admin_flag: bool = False):
@@ -197,11 +199,23 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
 
     @tree.command(name="leaderboard", description="Display a leaderboard with cool info.")
+    @app_commands.guild_only()
     async def leaderboard(interaction: discord.Interaction):
-        lb_view = LeaderboardView()
+        assert interaction.guild_id is not None
+
+        guild_data = config_manager.get_guild(interaction.guild_id)
+
+        channels = await get_configured_channels(guild_data, interaction.client)
+        if channels is None:
+            await interaction.response.send_message("Channels not configured!", ephemeral=True)
+            return
+        
+        stats = QuoteStats(await fetch_message_history_quotes(channels[0], cache))
+        sender_data = stats.count_quotes_made()
+        lb_view = LeaderboardView(sender_data)
 
         await interaction.response.send_message(
-            embed = create_leaderboard_embed(0),
+            embed = create_leaderboard_embed(sender_data, 0),
             view=lb_view
         )
 

@@ -72,11 +72,10 @@ async def create_info_embed(
     # client.fetch_user() is async coroutine. normally, awaiting many of them one by one is slow (serie).
     # asyncio runs them all at the same time (parallel), returning a list of all results
     # we have a generator. * unpacks everything. else you do something like next()
-    users = await asyncio.gather(*(client.fetch_user(int(uid)) for uid in guild_data.authorized_users))
     embed.add_field(
         name="Moderators",
         value=(
-            f"Users: {", ".join([user.name for user in users])}\n"
+            f"Users: {", ".join(f'<@{uid}>' for uid in guild_data.authorized_users)}\n"
             f"User_IDs: {", ".join([str(user_id) for user_id in guild_data.authorized_users])}\n"
         ),
         inline=False
@@ -88,19 +87,27 @@ async def create_info_embed(
 
 
 def create_leaderboard_embed(
-        page: int,
-        type: str
+        data,
+        page: int
     ) -> discord.Embed:
+
+    if page == 0:
+        title = "Quoted Others"
+
     embed = discord.Embed(
-        title=f"🏆 Leaderboard ({page})",
+        title=f"🏆 Leaderboard\n{f"{page + 1} | Quoted Others"}",
         color=discord.Color.gold()
     )
 
-    for i in range(1, 10):
-        embed.add_field(
-            name=f"User {i + 1}",
-            value=f"Quotes: {100-i}",
-            inline = False
-        )
+    start = page * 10
+    end = start + 10
+
+    slice_data = data[start:end]
+    if not slice_data:
+        embed.description = "No data."
+        return embed
+
+    lines = [f"**#{i + 1}** <@{uid}> | quoted others {count} times" for i, (uid, count) in enumerate(slice_data, start=start)]
+    embed.description = "\n\n".join(lines)
     
     return embed

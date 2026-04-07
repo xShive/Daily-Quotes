@@ -2,6 +2,7 @@
 import random
 import re
 import discord
+import asyncio
 from typing import Optional, Tuple
 
 from core.cache import QuoteCache
@@ -45,7 +46,6 @@ async def fetch_message_history_quotes(
             # Convert 2-tuples to 3-tuples by adding msg.author.id
             quotes_with_sender = [(quote, author, msg.author.id) for quote, author in matches]
             all_matches.append(quotes_with_sender)
-            print(quotes_with_sender)
 
     # save history to cache
     cache.cache_quote_history(all_matches)
