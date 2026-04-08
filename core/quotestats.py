@@ -1,4 +1,5 @@
 from my_types.quote_types import QuoteHistory
+import re
 
 
 class QuoteStats:
@@ -16,29 +17,25 @@ class QuoteStats:
         
         # sort by value
         return sorted(result.items(), key=lambda item: item[1], reverse=True)
+    
 
-
-    def count_total_quotes(self) -> list[tuple[str, int]]:
+    def count_total_quotes(self, known_users: list[str]) -> list[tuple[str, int]]:
         result: dict[str, int] = {}
 
         for quote_chain in self.history:
             for quote_part in quote_chain:
-                author_date = quote_part[1]
+                author_data = quote_part[1]
 
-                # Check for substrings
-                for name in result.keys():
-                    if name in author_date:
-                        result[name] += 1
+                matches = []
+                for user in known_users:
+                    match = re.search(r'\b' + re.escape(user) + r'\b', author_data, re.IGNORECASE)
+                    if match:
+                        matches.append((match.start(), user))
 
-                # If substring check fails
-                name = author_date.split(' ')[0]
-                if ',' in name:
-                    name = name.replace(',', '')
-                
+                if not matches:
+                    continue
 
+                _, matched_user = min(matches, key=lambda pair: pair[0])
+                result[matched_user] = result.get(matched_user, 0) + 1
 
-                result[name.lower()] = result.get(name.lower(), 0) + 1
-
-        print(sorted(result.items(), key=lambda item: item[1], reverse=True))
         return sorted(result.items(), key=lambda item: item[1], reverse=True)
-

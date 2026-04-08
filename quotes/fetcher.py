@@ -37,7 +37,8 @@ async def fetch_message_history_quotes(
         return cached_quotes
 
     # fetch everything using discord's API
-    QUOTE_REGEX = re.compile(r'"([^"]+)"[\n]+[-~]\s*(.+)')
+    # Support both straight quotes (") and curly quotes (“ ”)
+    QUOTE_REGEX = re.compile(r'(?:"|“|”)([^"“”]+)(?:"|“|”)[\n]+[-~]\s*(.+)')
     all_matches: QuoteHistory = []
 
     async for msg in channel.history(limit=None):
@@ -49,7 +50,7 @@ async def fetch_message_history_quotes(
 
     # save history to cache
     cache.cache_quote_history(all_matches)
-
+    print(all_matches)
     return all_matches
 
 

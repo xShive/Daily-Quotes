@@ -47,12 +47,22 @@ class GuildConfig:
     def authorized_users(self) -> list:
         """Get list of authorized user IDs.
         Returns an empty list if the config file is either corrupted or empty."""
-        return self._data.get("authorized_users", [])
+        return self._data.setdefault("authorized_users", [])
     
     @property
     def admin(self) -> Optional[str]:
         """Get the superior admin sigma as a str."""
         return self._data.get("admin")
+    
+    @property
+    def known_users(self) -> list[str]:
+        """Get the known users as strings separated by commas"""
+        return self._data.setdefault("known_users", [])
+    
+    def add_known_user(self, username: str):
+        """Add a user to the known users list"""
+        if username not in self.known_users:
+            self.known_users.append(username)
     
     def add_authorized_user(self, user_id: int):
         """Add a user to authorized users list, safely."""

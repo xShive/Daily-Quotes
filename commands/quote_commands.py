@@ -205,23 +205,37 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         assert interaction.guild_id is not None
 
         guild_data = config_manager.get_guild(interaction.guild_id)
+        known_users = guild_data.known_users
 
         channels = await get_configured_channels(guild_data, interaction.client)
         if channels is None:
             await interaction.response.send_message("Channels not configured!", ephemeral=True)
             return
         
+        await interaction.response.defer()
+
         stats = QuoteStats(await fetch_message_history_quotes(channels[0], cache))
         sender_data = stats.count_quotes_made()
-        quoted_data = stats.count_total_quotes()
+        quoted_data = stats.count_total_quotes(known_users)
         lb_view = LeaderboardView(sender_data, quoted_data)
 
-        await interaction.response.send_message(
-            embed = create_leaderboard_embed(sender_data, quoted_data, 0),
+        await interaction.edit_original_response(
+            embed=create_leaderboard_embed(sender_data, quoted_data, 0),
             view=lb_view
         )
 
-    
+    @tree.command(name="set_names", description="Add a user to *the list* known by the system which is used for filtering")
+    @mod_check
+    @app_commands.guild_only()
+    async def set_names(interaction: discord.Interaction, names: str):
+        assert interaction.guild_id is not None
+
+        guild_data = config_manager.get_guild(interaction.guild_id)
+        for name in [name.strip() for name in names.split(',') if name.strip()]:
+            guild_data.add_known_user(name)
+        config_manager.save()
+        await interaction.response.send_message(content="Successfully added everyone!", ephemeral=True)
+
     @tree.command(name="add_admin", description="Gives a member privileges to use the bot to its full extent.")
     @admin_check
     @app_commands.guild_only()
@@ -229,7 +243,6 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         assert interaction.guild_id is not None
         
         guild_data = config_manager.get_guild(interaction.guild_id)
-        print(user.id)
         guild_data.add_authorized_user(user.id)
         config_manager.save()
         await interaction.response.send_message(content=f"Successfully made <@{user.id}> a moderator!")

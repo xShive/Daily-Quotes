@@ -82,7 +82,8 @@ class ConfigManager:
             "source_channel" : None,
             "target_channel" : None,
             "authorized_users" : [int(admin_id)],
-            "admin" : int(admin_id)
+            "admin" : int(admin_id),
+            "known_users" : {}
         })
     
     def remove_guild(self, guild_id: int) -> bool:

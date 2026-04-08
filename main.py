@@ -53,6 +53,7 @@ async def on_ready():
 
     # sync all joined guilds
     async for guild in client.fetch_guilds():
+        print(guild.name)
         config_manager.add_guild(guild.id)
     config_manager.save()
 
