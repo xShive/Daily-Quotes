@@ -15,7 +15,30 @@ class QuoteStats:
                 result[author] = result.get(author, 0) + 1
         
         # sort by value
-        sender_data = sorted(result.items(), key=lambda item: item[1], reverse=True)
+        return sorted(result.items(), key=lambda item: item[1], reverse=True)
 
-        
-        return sender_data
+
+    def count_total_quotes(self) -> list[tuple[str, int]]:
+        result: dict[str, int] = {}
+
+        for quote_chain in self.history:
+            for quote_part in quote_chain:
+                author_date = quote_part[1]
+
+                # Check for substrings
+                for name in result.keys():
+                    if name in author_date:
+                        result[name] += 1
+
+                # If substring check fails
+                name = author_date.split(' ')[0]
+                if ',' in name:
+                    name = name.replace(',', '')
+                
+
+
+                result[name.lower()] = result.get(name.lower(), 0) + 1
+
+        print(sorted(result.items(), key=lambda item: item[1], reverse=True))
+        return sorted(result.items(), key=lambda item: item[1], reverse=True)
+

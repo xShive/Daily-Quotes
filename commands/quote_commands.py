@@ -11,10 +11,11 @@ from core.quotestats import QuoteStats
 
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self, sender_data):
+    def __init__(self, sender_data, quoted_data):
         super().__init__()      # super is to run discord stuff
         self.page = 0
         self.sender_data = sender_data
+        self.quoted_data = quoted_data
     
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.primary)
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -23,7 +24,7 @@ class LeaderboardView(discord.ui.View):
             self.page -=1
         
         await interaction.response.edit_message(
-            embed=create_leaderboard_embed(self.sender_data, self.page),
+            embed=create_leaderboard_embed(self.sender_data, self.quoted_data, self.page),
             view=self)
 
 
@@ -32,7 +33,7 @@ class LeaderboardView(discord.ui.View):
         self.page += 1
 
         await interaction.response.edit_message(
-        embed=create_leaderboard_embed(self.sender_data, self.page),
+        embed=create_leaderboard_embed(self.sender_data, self.quoted_data, self.page),
         view=self
     )
 
@@ -73,7 +74,7 @@ def validation(config_manager: ConfigManager, admin_flag: bool = False):
         if not admin_flag:
             return interaction.user.id in guild_data.authorized_users
         
-        return str(interaction.user.id) == guild_data.admin
+        return interaction.user.id == guild_data.admin
     
     return app_commands.check(predicate)
 
@@ -212,10 +213,11 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         
         stats = QuoteStats(await fetch_message_history_quotes(channels[0], cache))
         sender_data = stats.count_quotes_made()
-        lb_view = LeaderboardView(sender_data)
+        quoted_data = stats.count_total_quotes()
+        lb_view = LeaderboardView(sender_data, quoted_data)
 
         await interaction.response.send_message(
-            embed = create_leaderboard_embed(sender_data, 0),
+            embed = create_leaderboard_embed(sender_data, quoted_data, 0),
             view=lb_view
         )
 
@@ -230,7 +232,7 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         print(user.id)
         guild_data.add_authorized_user(user.id)
         config_manager.save()
-        await interaction.response.send_message(content=f"Successfully made {user.name} a moderator!")
+        await interaction.response.send_message(content=f"Successfully made <@{user.id}> a moderator!")
 
     @tree.command(name="remove_admin", description="Revokes a member's privileges to use the bot to its full extent.")
     @admin_check
@@ -241,7 +243,7 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         guild_data = config_manager.get_guild(interaction.guild_id)
         guild_data.remove_authorized_user(user.id)
         config_manager.save()
-        await interaction.response.send_message(content=f"Successfully removed {user.name} from the moderators!")
+        await interaction.response.send_message(content=f"Successfully removed <@{user.id}> from the moderators!")
         
 
         

@@ -87,27 +87,44 @@ async def create_info_embed(
 
 
 def create_leaderboard_embed(
-        data,
+        sender_data,
+        quoted_data: list[tuple[str, int]],
         page: int
     ) -> discord.Embed:
 
-    if page == 0:
-        title = "Quoted Others"
+    match(page):
+        case 0:
+            title = "Quoted Others"
+        
+        case 1:
+            title = "Times quoted"
 
+        case _:
+            title = "Unknown"
+    
     embed = discord.Embed(
-        title=f"🏆 Leaderboard\n{f"{page + 1} | Quoted Others"}",
+        title=f"🏆 Leaderboard\n{f"{page + 1} | {title}"}",
         color=discord.Color.gold()
     )
+    
+    match(page):
+        case 0:
+            slice_data = sender_data[:10]
+            if not slice_data:
+                embed.description = "No data."
+                return embed
+            
+            lines = [f"**#{i + 1}** <@{uid}> | quoted others {count} times" for i, (uid, count) in enumerate(slice_data)]
+            embed.description = "\n\n".join(lines)
+        
+        case 1:
+            slice_data = quoted_data[:10]
+            if not slice_data:
+                embed.description = "No data."
+                return embed
+            
+            lines = [f"**#{i + 1}** {name} | got quoted {count} times" for i, (name, count) in enumerate(slice_data)]
 
-    start = page * 10
-    end = start + 10
-
-    slice_data = data[start:end]
-    if not slice_data:
-        embed.description = "No data."
-        return embed
-
-    lines = [f"**#{i + 1}** <@{uid}> | quoted others {count} times" for i, (uid, count) in enumerate(slice_data, start=start)]
-    embed.description = "\n\n".join(lines)
+            
     
     return embed
