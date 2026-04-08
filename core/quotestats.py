@@ -19,7 +19,7 @@ class QuoteStats:
         return sorted(result.items(), key=lambda item: item[1], reverse=True)
     
 
-    def count_total_quotes(self, known_users: list[str]) -> list[tuple[str, int]]:
+    def count_total_quotes(self, known_users_dict: dict[str, list[str]]) -> list[tuple[str, int]]:
         result: dict[str, int] = {}
 
         for quote_chain in self.history:
@@ -27,15 +27,20 @@ class QuoteStats:
                 author_data = quote_part[1]
 
                 matches = []
-                for user in known_users:
-                    match = re.search(r'\b' + re.escape(user) + r'\b', author_data, re.IGNORECASE)
-                    if match:
-                        matches.append((match.start(), user))
+                # Loop through {"Hintrill": ["hintrill", "elias a"], "Sabato": ["sabato", "safloet"]}
+                for primary_user, aliases in known_users_dict.items():
+                    for alias in aliases:
+                        # Find whole words only, case-insensitive
+                        match = re.search(r'\b' + re.escape(alias) + r'\b', author_data, re.IGNORECASE)
+                        if match:
+                            # Save the start index and the PRIMARY user name, not the alias
+                            matches.append((match.start(), primary_user))
 
                 if not matches:
                     continue
 
-                _, matched_user = min(matches, key=lambda pair: pair[0])
-                result[matched_user] = result.get(matched_user, 0) + 1
+                # Pick the primary user whose alias appeared FIRST in the author string
+                _, matched_primary_user = min(matches, key=lambda pair: pair[0])
+                result[matched_primary_user] = result.get(matched_primary_user, 0) + 1
 
         return sorted(result.items(), key=lambda item: item[1], reverse=True)

@@ -232,9 +232,34 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
         guild_data = config_manager.get_guild(interaction.guild_id)
         for name in [name.strip() for name in names.split(',') if name.strip()]:
-            guild_data.add_known_user(name)
+            guild_data.add_known_user(name.capitalize())
+
         config_manager.save()
         await interaction.response.send_message(content="Successfully added everyone!", ephemeral=True)
+    
+    @tree.command(name="add_alias", description="Link an alias to a primary user (e.g., primary: Sabato, alias: Safloet)")
+    @mod_check
+    @app_commands.guild_only()
+    async def add_alias(interaction: discord.Interaction, primary_name: str, alias: str):
+        assert interaction.guild_id is not None
+
+        guild_data = config_manager.get_guild(interaction.guild_id)
+        
+        primary_clean = primary_name.strip()
+        alias_clean = alias.strip()
+
+        # check if primary exists
+        existing_primaries = {k.lower(): k for k in guild_data.known_users.keys()}
+        if primary_clean.lower() not in existing_primaries:
+            await interaction.response.send_message(f"Primary user '{primary_clean}' not found. Add them with /set_names first.", ephemeral=True)
+            return
+        
+        actual_primary = existing_primaries[primary_clean.lower()]
+
+        guild_data.add_known_alias(actual_primary, alias_clean)
+        config_manager.save()
+        
+        await interaction.response.send_message(content=f"Successfully linked '{alias_clean}' to **{actual_primary}**!", ephemeral=True)
 
     @tree.command(name="add_admin", description="Gives a member privileges to use the bot to its full extent.")
     @admin_check

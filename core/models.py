@@ -55,14 +55,25 @@ class GuildConfig:
         return self._data.get("admin")
     
     @property
-    def known_users(self) -> list[str]:
-        """Get the known users as strings separated by commas"""
-        return self._data.setdefault("known_users", [])
+    def known_users(self) -> dict[str, list[str]]:
+        """Get the known users mapping: Primary -> [aliases]"""
+        return self._data.setdefault("known_users", {})
     
-    def add_known_user(self, username: str):
-        """Add a user to the known users list"""
-        if username not in self.known_users:
-            self.known_users.append(username)
+    def add_known_user(self, primary_name: str):
+        """Add a primary user to the known users dict"""
+        if primary_name not in self.known_users:
+            self.known_users[primary_name] = [primary_name.lower()]
+
+    def add_known_alias(self, primary_name: str, alias: str):
+        """Add an alias to a primary user"""
+        alias_lower = alias.lower()
+        if primary_name in self.known_users:
+            # add if primary name exists
+            if alias_lower not in self.known_users[primary_name]:
+                self.known_users[primary_name].append(alias_lower)
+        else:
+            # case: primary name wasn't set yet
+            self.known_users[primary_name] = [primary_name.lower(), alias_lower]
     
     def add_authorized_user(self, user_id: int):
         """Add a user to authorized users list, safely."""
