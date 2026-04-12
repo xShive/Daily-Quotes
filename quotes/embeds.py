@@ -123,7 +123,6 @@ def create_leaderboard_embed(
                 embed.description = "No data."
                 return embed
             
-            print(slice_data)
             lines = [f"**#{i + 1}** {name} | got quoted {count} times" for i, (name, count) in enumerate(slice_data)]
             embed.description = "\n\n".join(lines)
 

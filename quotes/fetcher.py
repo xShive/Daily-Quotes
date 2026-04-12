@@ -50,7 +50,6 @@ async def fetch_message_history_quotes(
 
     # save history to cache
     cache.cache_quote_history(all_matches)
-    print(all_matches)
     return all_matches
 
 

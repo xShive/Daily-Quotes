@@ -5,7 +5,8 @@ from discord import app_commands
 
 from core.config_manager import ConfigManager
 from core.cache import QuoteCache
-from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes, get_configured_channels
+from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes
+from core.helpers import get_configured_channels
 from quotes.embeds import create_quote_embed, create_info_embed, create_leaderboard_embed
 from core.quotestats import QuoteStats
 
@@ -92,7 +93,6 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
     mod_check = validation(config_manager)
     admin_check = validation(config_manager, True)
 
-    import time
 
     @tree.command(name="quote", description="Send a random quote from a source channel to a target channel")
     @app_commands.guild_only()
@@ -126,8 +126,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
 
     @tree.command(name="source", description="Set the specified channel as the source channel.")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def set_source(interaction: discord.Interaction, source_channel: discord.TextChannel):
         assert interaction.guild_id is not None
         
@@ -138,8 +138,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
 
     @tree.command(name="target", description="Set the specified channel as the target channel.")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def set_target(interaction: discord.Interaction, target_channel: discord.TextChannel):
         assert interaction.guild_id is not None
 
@@ -150,8 +150,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
 
     @tree.command(name="info", description="Display the currently configurated settings.")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def show_info(interaction: discord.Interaction):
         assert interaction.guild_id is not None
         
@@ -168,8 +168,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
 
 
     @tree.command(name="total_quotes", description="Display the total amount of correctly formatted quotes in set source channel")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def get_total_quotes(interaction: discord.Interaction):
         assert interaction.guild_id is not None
 
@@ -225,8 +225,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         )
 
     @tree.command(name="set_names", description="Add a user to *the list* known by the system which is used for filtering")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def set_names(interaction: discord.Interaction, names: str):
         assert interaction.guild_id is not None
 
@@ -238,8 +238,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await interaction.response.send_message(content="Successfully added everyone!", ephemeral=True)
     
     @tree.command(name="add_alias", description="Link an alias to a primary user (e.g., primary: Sabato, alias: Safloet)")
-    @mod_check
     @app_commands.guild_only()
+    @mod_check
     async def add_alias(interaction: discord.Interaction, primary_name: str, alias: str):
         assert interaction.guild_id is not None
 
@@ -262,8 +262,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await interaction.response.send_message(content=f"Successfully linked '{alias_clean}' to **{actual_primary}**!", ephemeral=True)
 
     @tree.command(name="add_admin", description="Gives a member privileges to use the bot to its full extent.")
-    @admin_check
     @app_commands.guild_only()
+    @admin_check
     async def add_admin(interaction: discord.Interaction, user: discord.User):
         assert interaction.guild_id is not None
         
@@ -273,8 +273,8 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await interaction.response.send_message(content=f"Successfully made <@{user.id}> a moderator!")
 
     @tree.command(name="remove_admin", description="Revokes a member's privileges to use the bot to its full extent.")
-    @admin_check
     @app_commands.guild_only()
+    @admin_check
     async def remove_admin(interaction: discord.Interaction, user: discord.User):
         assert interaction.guild_id is not None
         
