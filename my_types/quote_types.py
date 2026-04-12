@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-QuoteLine = Tuple[str, str]     # ("quote", "name")
+QuoteLine = Tuple[str, str, int]     # ("quote", "name")
 Quote = List[QuoteLine]         # full chain (one quote tuple)
 T_Quote = Tuple[QuoteLine, ...] # full chain but tuples for set operations
 QuoteHistory = List[Quote]      # all prepared quotes in a list

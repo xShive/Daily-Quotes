@@ -2,6 +2,7 @@
 import random
 import re
 import discord
+import asyncio
 from typing import Optional, Tuple
 
 from core.cache import QuoteCache
@@ -36,17 +37,19 @@ async def fetch_message_history_quotes(
         return cached_quotes
 
     # fetch everything using discord's API
-    QUOTE_REGEX = re.compile(r'"([^"]+)"[\n]+[-~]\s*(.+)')
-    all_matches: list[Quote] = []
+    # Support both straight quotes (") and curly quotes (“ ”)
+    QUOTE_REGEX = re.compile(r'(?:"|“|”)([^"“”]+)(?:"|“|”)[\n]+[-~]\s*(.+)')
+    all_matches: QuoteHistory = []
 
     async for msg in channel.history(limit=None):
         matches = QUOTE_REGEX.findall(msg.content)
         if matches:
-            all_matches.append(matches)
-    
+            # Convert 2-tuples to 3-tuples by adding msg.author.id
+            quotes_with_sender = [(quote, author, msg.author.id) for quote, author in matches]
+            all_matches.append(quotes_with_sender)
+
     # save history to cache
     cache.cache_quote_history(all_matches)
-
     return all_matches
 
 

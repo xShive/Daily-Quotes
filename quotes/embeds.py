@@ -21,7 +21,7 @@ def create_quote_embed(quote_data: Quote) -> discord.Embed:
         color=discord.Colour.from_rgb(130, 182, 217),
     )
 
-    lines: list[str] = [f"“{q}”\n— *{a}*" for q, a in quote_data]
+    lines: list[str] = [f"“{q}”\n— *{a}*" for q, a, _ in quote_data]
     embed.description = "\n\n".join(lines)
     embed.set_footer(text="Daily Quotes")
 
@@ -72,16 +72,61 @@ async def create_info_embed(
     # client.fetch_user() is async coroutine. normally, awaiting many of them one by one is slow (serie).
     # asyncio runs them all at the same time (parallel), returning a list of all results
     # we have a generator. * unpacks everything. else you do something like next()
-    users = await asyncio.gather(*(client.fetch_user(int(uid)) for uid in guild_data.authorized_users))
     embed.add_field(
         name="Moderators",
         value=(
-            f"Users: {", ".join([user.name for user in users])}\n"
+            f"Users: {", ".join(f'<@{uid}>' for uid in guild_data.authorized_users)}\n"
             f"User_IDs: {", ".join([str(user_id) for user_id in guild_data.authorized_users])}\n"
         ),
         inline=False
     )
 
     embed.set_footer(text="Daily Quotes")
+    
+    return embed
+
+
+def create_leaderboard_embed(
+        sender_data,
+        quoted_data: list[tuple[str, int]],
+        page: int
+    ) -> discord.Embed:
+
+    match(page):
+        case 0:
+            title = "Quoted Others"
+        
+        case 1:
+            title = "Times quoted"
+
+        case _:
+            title = "Unknown"
+    
+    embed = discord.Embed(
+        title=f"🏆 Leaderboard\n{f"{page + 1} | {title}"}",
+        color=discord.Color.gold()
+    )
+    
+    match(page):
+        case 0:
+            slice_data = sender_data[:10]
+            if not slice_data:
+                embed.description = "No data."
+                return embed
+            
+            lines = [f"**#{i + 1}** <@{uid}> | quoted others {count} times" for i, (uid, count) in enumerate(slice_data)]
+            embed.description = "\n\n".join(lines)
+        
+        case 1:
+            slice_data = quoted_data[:10]
+            if not slice_data:
+                embed.description = "No data."
+                return embed
+            
+            lines = [f"**#{i + 1}** {name} | got quoted {count} times" for i, (name, count) in enumerate(slice_data)]
+            embed.description = "\n\n".join(lines)
+
+
+            
     
     return embed

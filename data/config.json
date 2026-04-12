@@ -1,8 +1,8 @@
 {
     "guilds": {
         "1422675442866847837": {
-            "source_channel": null,
-            "target_channel": null,
+            "source_channel": 1422675975220498463,
+            "target_channel": 1422675444351897762,
             "authorized_users": [
                 514782845181624330
             ],
