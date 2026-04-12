@@ -5,7 +5,8 @@ from discord import app_commands
 
 from core.config_manager import ConfigManager
 from core.cache import QuoteCache
-from quotes.fetcher import fetch_random_quote, fetch_message_history_quotes
+from core.quote_service import fetch_random_quote_for_guild
+from quotes.fetcher import fetch_message_history_quotes
 from core.helpers import get_configured_channels
 from quotes.embeds import create_quote_embed, create_info_embed, create_leaderboard_embed
 from core.quotestats import QuoteStats
@@ -100,21 +101,20 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         start = time.perf_counter()
 
         assert interaction.guild_id is not None
-        
-        channels = await get_configured_channels(config_manager.get_guild(interaction.guild_id), interaction.client)
-        if channels is None:
+        guild_data = config_manager.get_guild(interaction.guild_id)
+
+        if not guild_data.has_channels_configured():
             await interaction.response.send_message("Channels not configured!", ephemeral=True)
             return
-        
-        source_channel, target_channel = channels
 
         await interaction.response.defer()
 
-        quote = await fetch_random_quote(source_channel, cache)
-        if quote is None:
-            await interaction.edit_original_response(content=f"No quotes found in {source_channel.mention}!")
+        quote_result = await fetch_random_quote_for_guild(guild_data, interaction.client, cache)
+        if quote_result is None:
+            await interaction.edit_original_response(content="No quotes found in the configured source channel!")
             return
-        
+
+        _, target_channel, quote = quote_result
         quote_embed = create_quote_embed(quote)
         await target_channel.send(embed=quote_embed)
 
@@ -284,4 +284,3 @@ def register_commands(tree, config_manager: ConfigManager, cache: QuoteCache):
         await interaction.response.send_message(content=f"Successfully removed <@{user.id}> from the moderators!")
         
 
-        

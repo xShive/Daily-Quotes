@@ -2,12 +2,14 @@
 import os
 import dotenv
 import discord
+import datetime
 
 from discord import app_commands
 from commands.quote_commands import register_commands
 from commands.error_handler import register_errors
 from core.config_manager import ConfigManager
 from core.cache import QuoteCache
+from tasks.daily_quote import DailyQuoteScheduler
 
 
 # ========== Environment Setup ==========
@@ -29,6 +31,8 @@ tree = app_commands.CommandTree(client)
 # AppCommand objects, each of which knows command name, desc, parameter info, function to call
 # So it looks like this: "id" + AppCommand(callback=function, metadata=...)
 
+scheduler = DailyQuoteScheduler(client, config_manager, cache)
+
 
 # ========== Startup ==========
 token = os.getenv("DISCORD_TOKEN")
@@ -41,6 +45,8 @@ async def on_ready():
 
     register_commands(tree, config_manager, cache)
     register_errors(tree)
+
+    scheduler.start()
     
     # sync with test server
     guild_id = os.getenv("GUILD_ID")

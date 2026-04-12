@@ -64,12 +64,17 @@ class ConfigManager:
             json.dump(self.data, f, indent=4)
     
     def get_guild(self, guild_id: int) -> GuildConfig:
-        """Returns GuildConfig, creates defaul if missing (using add_guild method)"""
+        """Returns GuildConfig, creates default if missing (using add_guild method)."""
         str_guild_id = str(guild_id)
         if str_guild_id not in self.data["guilds"]:
             self.add_guild(guild_id)
-        
+
         return GuildConfig(str_guild_id, self.data["guilds"][str_guild_id])
+
+    def iter_guilds(self):
+        """Iterate over existing GuildConfig objects without modifying config."""
+        for guild_id_str, guild_data in self.data.get("guilds", {}).items():
+            yield GuildConfig(guild_id_str, guild_data)
 
     def add_guild(self, guild_id: int):
         """Adds a Discord Guild to the config.json using default values. Needs its ID."""

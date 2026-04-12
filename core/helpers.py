@@ -1,5 +1,5 @@
 from typing import Optional, Tuple
-from models import GuildConfig
+from core.models import GuildConfig
 import discord
 
 async def get_configured_channels(
